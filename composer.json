@@ -1,0 +1,17 @@
+{
+  "name": "zarv1k/yii2-params",
+  "type": "yii2-extension",
+  "description": "Yii2 Advanced params",
+  "keywords": ["yii2", "params"],
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Dmitry Zarva",
+      "email": "zarv1k@ya.ru"
+    }
+  ],
+  "require": {
+    "yiisoft/yii2": "2.0.1"
+  }
+}

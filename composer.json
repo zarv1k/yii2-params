@@ -20,6 +20,6 @@
     }
   },
   "extra": {
-    "bootstrap": "zarv1k\\params\\bootstrap\\ReplaceParams"
+    "bootstrap": "zarv1k\\params\\bootstrap\\Init"
   }
 }

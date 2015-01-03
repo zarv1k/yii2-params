@@ -4,10 +4,17 @@ namespace zarv1k\params\components;
 
 use yii\base\Component;
 
-class Params extends Component implements \ArrayAccess
+class Params extends Component implements \ArrayAccess, \Iterator
 {
-    protected $_params = [];
+    protected $_filePath = '@app/config/params.php';
+    protected $_params= [];
 
+    public function init()
+    {
+        parent::init();
+
+        $this->loadFileParams($this->_filePath);
+    }
     /**
      * (PHP 5 &gt;= 5.0.0)<br/>
      * Whether a offset exists
@@ -78,16 +85,78 @@ class Params extends Component implements \ArrayAccess
     /**
      * @return array
      */
-    public function getParams()
+    public function getFilePath()
     {
-        return $this->_params;
+        return $this->_filePath;
     }
 
     /**
-     * @param array $params
+     * @param string $filePath
      */
-    public function setParams(array $params)
+    public function setFilePath($filePath)
     {
-        $this->_params = $params;
+        $this->_filePath = $filePath;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Return the current element
+     * @link http://php.net/manual/en/iterator.current.php
+     * @return mixed Can return any type.
+     */
+    public function current()
+    {
+        return current($this->_params);
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Move forward to next element
+     * @link http://php.net/manual/en/iterator.next.php
+     * @return void Any returned value is ignored.
+     */
+    public function next()
+    {
+        next($this->_params);
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Return the key of the current element
+     * @link http://php.net/manual/en/iterator.key.php
+     * @return mixed scalar on success, or null on failure.
+     */
+    public function key()
+    {
+        return key($this->_params);
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Checks if current position is valid
+     * @link http://php.net/manual/en/iterator.valid.php
+     * @return boolean The return value will be casted to boolean and then evaluated.
+     * Returns true on success or false on failure.
+     */
+    public function valid()
+    {
+        return !is_null($this->key());
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Rewind the Iterator to the first element
+     * @link http://php.net/manual/en/iterator.rewind.php
+     * @return void Any returned value is ignored.
+     */
+    public function rewind()
+    {
+        reset($this->_params);
+    }
+
+    protected function loadFileParams($_filePath)
+    {
+        $path = \Yii::getAlias($_filePath);
+        $this->_params = require($path);
     }
 }

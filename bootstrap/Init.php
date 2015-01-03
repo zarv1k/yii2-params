@@ -5,12 +5,13 @@ namespace zarv1k\params\bootstrap;
 use yii\base\BootstrapInterface;
 use yii\base\Application;
 
-class ReplaceParams implements BootstrapInterface
+class Init implements BootstrapInterface
 {
     public function bootstrap($app)
     {
         $app->on(Application::EVENT_BEFORE_REQUEST, function () {
-            \Yii::$app->params = \Yii::$app->dbParams;
+            // TODO: review this code
+            \Yii::$app->params = \Yii::createObject(\Yii::$app->params);
         });
     }
 }

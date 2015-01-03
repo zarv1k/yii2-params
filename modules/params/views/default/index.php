@@ -13,15 +13,35 @@
 -->
 
 <div class="params-default-index">
-    <h5>Params:</h5>
-    <?php echo Yii::$app->dbParam['adminEmail']?>
-
-
-    <?php
-        echo \yii\grid\GridView::widget([
+    <h5>DB params:</h5>
+    <div class="well well-sm">
+        <?=\yii\grid\GridView::widget([
             'dataProvider' => new \yii\data\ActiveDataProvider([
                 'query' => \zarv1k\params\models\Params::find(),
             ])
         ]);
-    ?>
+        ?>
+    </div>
+
+    <h5>Config file params:</h5>
+    <div class="well well-sm">
+        <?=\yii\grid\GridView::widget([
+            // TODO: move logic into Params component
+            'dataProvider' => new \yii\data\ArrayDataProvider([
+                'allModels' => array_map(
+                    function($key) {
+                        $scopeSeparatorPos = strpos($key, '.');
+                        return [
+                            'scope' => $scopeSeparatorPos === false ? 'NULL' : substr($key, 0, $scopeSeparatorPos),
+                            'code' => $scopeSeparatorPos === false ? $key : substr($key, $scopeSeparatorPos+1, strlen($key)),
+                            'value' => Yii::$app->params[$key]
+                        ];
+                    },
+                    array_keys(Yii::$app->params)
+                ),
+                // TODO: add pagination and sort
+            ])
+        ]);
+        ?>
+    </div>
 </div>

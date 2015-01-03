@@ -6,12 +6,12 @@ use Yii;
 use yii\db\ActiveRecord;
 
 /**
- * This is the model class for table "{{%yii2_params}}".
+ * This is the model class for table "{{%params}}".
  *
- * @property integer $parameter_id
+ * @property integer $id
  * @property string $scope
  * @property string $code
- * @property string $name
+ * @property string $description
  * @property string $value
  * @property string $validation
  * @property string $created
@@ -24,7 +24,7 @@ class Params extends ActiveRecord
      */
     public static function tableName()
     {
-        return '{{%yii2_params}}';
+        return '{{%params}}';
     }
 
     /**
@@ -33,10 +33,11 @@ class Params extends ActiveRecord
     public function rules()
     {
         return [
-            [['code', 'name', 'value'], 'required'],
+            [['code', 'description', 'value'], 'required'],
             [['validation'], 'string'],
             [['created', 'updated'], 'safe'],
-            [['scope', 'code', 'name', 'value'], 'string', 'max' => 255],
+            [['scope', 'code'], 'string', 'max' => 255],
+            [['description', 'value'], 'string', 'max' => 65500],
             [['code'], 'unique']
         ];
     }
@@ -47,10 +48,10 @@ class Params extends ActiveRecord
     public function attributeLabels()
     {
         return [
-            'parameter_id' => 'Parameter ID',
+            'id' => 'Parameter ID',
             'scope' => 'Scope',
             'code' => 'Code',
-            'name' => 'Name',
+            'description' => 'Description',
             'value' => 'Value',
             'validation' => 'Validation',
             'created' => 'Created',

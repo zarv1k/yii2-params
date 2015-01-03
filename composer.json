@@ -18,5 +18,8 @@
     "psr-4": {
       "zarv1k\\params\\": ""
     }
+  },
+  "extra": {
+    "bootstrap": "zarv1k\\params\\BootstrapClass"
   }
 }

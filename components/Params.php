@@ -12,19 +12,16 @@ use yii\helpers\ArrayHelper;
 class Params extends Component implements \ArrayAccess, \Iterator, \Countable
 {
     protected $_db = 'db';
-    protected $_params = [];
+    protected $_params = null;
     protected $_overwrite = true;
     protected $_filePath = '@app/config/params.php';
+    protected $_tableName = '{{%params}}';
 
-    protected $_modelClass = '\zarv1k\params\models\Params';
-
-    public function getTableName()
-    {
-        $modelClass = $this->getModelClass();
-        return $modelClass::tableName();
-    }
-
-    public function getDbParams()
+    /**
+     * TODO: review this method access
+     * @return array
+     */
+    protected function getDbParams()
     {
         $params = [];
         // TODO: cache this method
@@ -56,9 +53,6 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
         parent::init();
 
         $this->_db = Instance::ensure($this->_db, Connection::className());
-
-        $this->loadParamsFromFile($this->getFilePath());
-        $this->mergeParams();
     }
 
     /**
@@ -90,10 +84,23 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Load params
+     * @throws InvalidConfigException
+     */
+    protected function loadParams()
+    {
+        $this->loadParamsFromFile($this->getFilePath());
+        $this->mergeParams();
+    }
+
+    /**
      * @inheritdoc
      */
     public function offsetExists($offset)
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         return array_key_exists($offset, $this->_params);
     }
 
@@ -102,6 +109,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function offsetGet($offset)
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         if ($this->offsetExists($offset)) {
             return $this->_params[$offset];
         } else {
@@ -114,6 +124,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function offsetSet($offset, $value)
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         $this->_params[$offset] = $value;
     }
 
@@ -122,6 +135,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function offsetUnset($offset)
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         unset($this->_params[$offset]);
     }
 
@@ -130,6 +146,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function current()
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         return current($this->_params);
     }
 
@@ -138,6 +157,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function next()
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         next($this->_params);
     }
 
@@ -146,6 +168,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function key()
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         return key($this->_params);
     }
 
@@ -162,6 +187,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function rewind()
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         reset($this->_params);
     }
 
@@ -170,15 +198,10 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     public function count()
     {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
         return count($this->_params);
-    }
-
-    /**
-     * @return array
-     */
-    public function getParams()
-    {
-        return $this->_params;
     }
 
     /**
@@ -187,22 +210,6 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     public function setParams($params)
     {
         $this->_params = $params;
-    }
-
-    /**
-     * @return string
-     */
-    public function getModelClass()
-    {
-        return $this->_modelClass;
-    }
-
-    /**
-     * @param string $modelClass
-     */
-    public function setModelClass($modelClass)
-    {
-        $this->_modelClass = $modelClass;
     }
 
     /**
@@ -253,5 +260,21 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     public function setFilePath($filePath)
     {
         $this->_filePath = $filePath;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTableName()
+    {
+        return $this->_tableName;
+    }
+
+    /**
+     * @param string $tableName
+     */
+    public function setTableName($tableName)
+    {
+        $this->_tableName = $tableName;
     }
 }

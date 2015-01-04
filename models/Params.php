@@ -24,9 +24,9 @@ class Params extends ActiveRecord
      */
     public static function getDb()
     {
-        /** @var \zarv1k\params\components\Params $db */
-        $db = Yii::$container->get('yii2Params');
-        return $db->getDb();
+        /** @var \zarv1k\params\components\Params $params */
+        $params = Yii::$container->get('yii2Params');
+        return $params->getDb();
     }
 
     /**
@@ -34,8 +34,9 @@ class Params extends ActiveRecord
      */
     public static function tableName()
     {
-        // TODO: move to params component and retrieve from DI container
-        return '{{%params}}';
+        /** @var \zarv1k\params\components\Params $params */
+        $params = Yii::$container->get('yii2Params');
+        return $params->getTableName();
     }
 
     /**

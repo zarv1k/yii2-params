@@ -3,16 +3,15 @@
 namespace zarv1k\params\modules\params\controllers;
 
 use yii\web\Controller;
+use zarv1k\params\models\Params;
 
 class ManageController extends Controller
 {
     public function actionIndex()
     {
         // prepare file params data provider
-        $filaPath = \Yii::$app->params->getFilePath();
-        $fileParams = !empty($filaPath) ?
-            require(\Yii::getAlias($filaPath)) :
-            [];
+        $filePath = \Yii::getAlias(\Yii::$app->params->getFilePath());
+        $fileParams = is_file($filePath) ? require($filePath) : [];
 
         $fileParamKeys   = array_keys($fileParams);
         $fileParamsArray = array_map(
@@ -34,9 +33,8 @@ class ManageController extends Controller
         ]);
 
         // prepare db params data provider
-        $modelClass = \Yii::$app->params->getModelClass();
         $dbParams   = new \yii\data\ActiveDataProvider([
-            'query' => $modelClass::find(),
+            'query' => Params::find(),
         ]);
 
         return $this->render('index', ['fileParams' => $fileParams, 'dbParams' => $dbParams]);

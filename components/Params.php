@@ -3,29 +3,94 @@
 namespace zarv1k\params\components;
 
 use yii\base\Component;
+use yii\base\InvalidConfigException;
+use yii\db\Connection;
+use yii\db\Query;
+use yii\di\Instance;
+use yii\helpers\ArrayHelper;
 
-class Params extends Component implements \ArrayAccess, \Iterator
+class Params extends Component implements \ArrayAccess, \Iterator, \Countable
 {
+    protected $_db = 'db';
+    protected $_params = [];
+    protected $_overwrite = true;
     protected $_filePath = '@app/config/params.php';
-    protected $_params= [];
 
+    protected $_modelClass = '\zarv1k\params\models\Params';
+
+    public function getTableName()
+    {
+        $modelClass = $this->getModelClass();
+        return $modelClass::tableName();
+    }
+
+    public function getDbParams()
+    {
+        $params = [];
+        // TODO: cache this method
+        $table = $this->getTableName();
+
+        $query = (new Query())
+            ->select('scope, code, value')
+            ->from($table)
+            ->indexBy(function ($row) {
+                $key = $row['code'];
+                if (!is_null($row['scope'])) {
+                    $key = "{$row['scope']}.$key";
+                }
+                return $key;
+            });
+
+        foreach ($query->each() as $k => $v) {
+            $params[$k] = $v['value'];
+        }
+        return $params;
+    }
+
+    /**
+     * Init component
+     * @throws InvalidConfigException
+     */
     public function init()
     {
         parent::init();
 
-        $this->loadFileParams($this->_filePath);
+        $this->_db = Instance::ensure($this->_db, Connection::className());
+
+        $this->loadParamsFromFile($this->getFilePath());
+        $this->mergeParams();
     }
+
     /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Whether a offset exists
-     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
-     * @param mixed $offset <p>
-     * An offset to check for.
-     * </p>
-     * @return boolean true on success or false on failure.
-     * </p>
-     * <p>
-     * The return value will be casted to boolean if non-boolean was returned.
+     * Load params from php file
+     * @param $_filePath
+     * @throws InvalidConfigException
+     */
+    protected function loadParamsFromFile($_filePath)
+    {
+        if (is_string($_filePath) && !empty($_filePath)) {
+            $path          = \Yii::getAlias($_filePath);
+            $this->_params = require($path);
+        } else {
+            // TODO: review this code
+            throw new InvalidConfigException('filePath property must be a string alias to params file');
+        }
+    }
+
+    /**
+     * Merge params
+     */
+    protected function mergeParams()
+    {
+        $this->_params = $this->getOverwrite() ?
+            ArrayHelper::merge($this->_params, $this->getDbParams()) :
+            ArrayHelper::merge($this->getDbParams(), $this->_params);
+
+        ksort($this->_params);
+    }
+
+    /**
+     * @inheritdoc
      */
     public function offsetExists($offset)
     {
@@ -33,35 +98,19 @@ class Params extends Component implements \ArrayAccess, \Iterator
     }
 
     /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Offset to retrieve
-     * @link http://php.net/manual/en/arrayaccess.offsetget.php
-     * @param mixed $offset <p>
-     * The offset to retrieve.
-     * </p>
-     * @return mixed Can return all value types.
+     * @inheritdoc
      */
     public function offsetGet($offset)
     {
         if ($this->offsetExists($offset)) {
             return $this->_params[$offset];
-        }
-        else {
+        } else {
             return null;
         }
     }
 
     /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Offset to set
-     * @link http://php.net/manual/en/arrayaccess.offsetset.php
-     * @param mixed $offset <p>
-     * The offset to assign the value to.
-     * </p>
-     * @param mixed $value <p>
-     * The value to set.
-     * </p>
-     * @return void
+     * @inheritdoc
      */
     public function offsetSet($offset, $value)
     {
@@ -69,17 +118,125 @@ class Params extends Component implements \ArrayAccess, \Iterator
     }
 
     /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Offset to unset
-     * @link http://php.net/manual/en/arrayaccess.offsetunset.php
-     * @param mixed $offset <p>
-     * The offset to unset.
-     * </p>
-     * @return void
+     * @inheritdoc
      */
     public function offsetUnset($offset)
     {
         unset($this->_params[$offset]);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function current()
+    {
+        return current($this->_params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function next()
+    {
+        next($this->_params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function key()
+    {
+        return key($this->_params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function valid()
+    {
+        return !is_null($this->key());
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function rewind()
+    {
+        reset($this->_params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function count()
+    {
+        return count($this->_params);
+    }
+
+    /**
+     * @return array
+     */
+    public function getParams()
+    {
+        return $this->_params;
+    }
+
+    /**
+     * @param array $params
+     */
+    public function setParams($params)
+    {
+        $this->_params = $params;
+    }
+
+    /**
+     * @return string
+     */
+    public function getModelClass()
+    {
+        return $this->_modelClass;
+    }
+
+    /**
+     * @param string $modelClass
+     */
+    public function setModelClass($modelClass)
+    {
+        $this->_modelClass = $modelClass;
+    }
+
+    /**
+     * Is DB parameter override
+     *
+     * @return boolean
+     */
+    public function getOverwrite()
+    {
+        return $this->_overwrite;
+    }
+
+    /**
+     * @param boolean $overwrite
+     */
+    public function setOverwrite($overwrite)
+    {
+        $this->_overwrite = $overwrite;
+    }
+
+    /**
+     * @return Connection
+     */
+    public function getDb()
+    {
+        return $this->_db;
+    }
+
+    /**
+     * @param string|Connection $db
+     */
+    public function setDb($db)
+    {
+        $this->_db = $db;
     }
 
     /**
@@ -96,67 +253,5 @@ class Params extends Component implements \ArrayAccess, \Iterator
     public function setFilePath($filePath)
     {
         $this->_filePath = $filePath;
-    }
-
-    /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Return the current element
-     * @link http://php.net/manual/en/iterator.current.php
-     * @return mixed Can return any type.
-     */
-    public function current()
-    {
-        return current($this->_params);
-    }
-
-    /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Move forward to next element
-     * @link http://php.net/manual/en/iterator.next.php
-     * @return void Any returned value is ignored.
-     */
-    public function next()
-    {
-        next($this->_params);
-    }
-
-    /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Return the key of the current element
-     * @link http://php.net/manual/en/iterator.key.php
-     * @return mixed scalar on success, or null on failure.
-     */
-    public function key()
-    {
-        return key($this->_params);
-    }
-
-    /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Checks if current position is valid
-     * @link http://php.net/manual/en/iterator.valid.php
-     * @return boolean The return value will be casted to boolean and then evaluated.
-     * Returns true on success or false on failure.
-     */
-    public function valid()
-    {
-        return !is_null($this->key());
-    }
-
-    /**
-     * (PHP 5 &gt;= 5.0.0)<br/>
-     * Rewind the Iterator to the first element
-     * @link http://php.net/manual/en/iterator.rewind.php
-     * @return void Any returned value is ignored.
-     */
-    public function rewind()
-    {
-        reset($this->_params);
-    }
-
-    protected function loadFileParams($_filePath)
-    {
-        $path = \Yii::getAlias($_filePath);
-        $this->_params = require($path);
     }
 }

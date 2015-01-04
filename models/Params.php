@@ -6,7 +6,7 @@ use Yii;
 use yii\db\ActiveRecord;
 
 /**
- * This is the model class for table "{{%params}}".
+ * This is the model class for params table
  *
  * @property integer $id
  * @property string $scope
@@ -22,8 +22,19 @@ class Params extends ActiveRecord
     /**
      * @inheritdoc
      */
+    public static function getDb()
+    {
+        /** @var \zarv1k\params\components\Params $db */
+        $db = Yii::$container->get('yii2Params');
+        return $db->getDb();
+    }
+
+    /**
+     * @inheritdoc
+     */
     public static function tableName()
     {
+        // TODO: move to params component and retrieve from DI container
         return '{{%params}}';
     }
 

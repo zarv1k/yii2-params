@@ -11,7 +11,9 @@ class Init implements BootstrapInterface
     {
         $app->on(Application::EVENT_BEFORE_REQUEST, function () {
             // TODO: review this code
-            \Yii::$app->params = \Yii::createObject(\Yii::$app->params);
+            \Yii::$container->setSingleton('zarv1k\params\components\Params', \Yii::$app->params);
+            \Yii::$container->setSingleton('yii2Params', 'zarv1k\params\components\Params');
+            \Yii::$app->params = \Yii::$container->get('yii2Params');
         });
     }
 }

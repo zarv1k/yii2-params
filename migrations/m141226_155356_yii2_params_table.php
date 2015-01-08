@@ -7,8 +7,11 @@ class m141226_155356_yii2_params_table extends Migration
 {
     public function up()
     {
+        /** @var \zarv1k\params\components\Params $params */
+        $params = Yii::$container->get('yii2Params');
+        $tableName = $params->getTableName();
         $this->createTable(
-            \zarv1k\params\models\Params::tableName(),
+            $tableName,
             [
                 'id' => Schema::TYPE_PK,
                 'scope' => 'VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin',
@@ -26,7 +29,9 @@ class m141226_155356_yii2_params_table extends Migration
 
     public function down()
     {
-        $tableName = \zarv1k\params\models\Params::tableName();
+        /** @var \zarv1k\params\components\Params $params */
+        $params = Yii::$container->get('yii2Params');
+        $tableName = $params->getTableName();
         $this->dropTable($tableName);
     }
 }

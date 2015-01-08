@@ -42,7 +42,9 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     protected function getDbParams()
     {
         if ($this->getCache()->exists($this->getCacheKey())) {
-            return $this->getCache()->get($this->getCacheKey());
+            if (is_array($dbParams = $this->getCache()->get($this->getCacheKey()))) {
+                return $dbParams;
+            }
         }
 
         $params = [];

@@ -10,7 +10,6 @@ class Init implements BootstrapInterface
     public function bootstrap($app)
     {
         $app->on(Application::EVENT_BEFORE_REQUEST, function () {
-            // TODO: review this code
             $params = \Yii::$app->params;
             if (is_string($params) && is_file($configFilePath = \Yii::getAlias($params))) {
                 $params = require($configFilePath);

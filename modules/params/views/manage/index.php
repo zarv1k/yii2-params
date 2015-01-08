@@ -11,7 +11,6 @@
 
     <div class="well well-sm">
         <?= \yii\grid\GridView::widget([
-            // TODO: move logic into Params component
             'dataProvider' => $fileParams
         ]); ?>
     </div>

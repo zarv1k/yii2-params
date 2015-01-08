@@ -56,41 +56,34 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Load params
+     * Load and merge params
      * @throws InvalidConfigException
      */
     protected function loadParams()
     {
-        $this->loadParamsFromFile($this->getFilePath());
-        $this->mergeParams();
+        $this->_params = $this->getOverwrite() ?
+            ArrayHelper::merge($this->getFileParams(), $this->getDbParams()) :
+            ArrayHelper::merge($this->getDbParams(), $this->getFileParams());
+
+        ksort($this->_params); // TODO: review this code - may be this sort is unneeded and should be removed
     }
 
     /**
      * Load params from php file
-     * @param $_filePath
+     * @return array
      * @throws InvalidConfigException
      */
-    protected function loadParamsFromFile($_filePath)
+    protected function getFileParams()
     {
-        if (is_string($_filePath) && !empty($_filePath)) {
-            $path          = \Yii::getAlias($_filePath);
-            $this->_params = require($path);
-        } else {
-            // TODO: review this code
-            throw new InvalidConfigException('filePath property must be a string alias to params file');
+        if (is_null($this->getFilePath())) {
+            return [];
         }
-    }
 
-    /**
-     * Merge params
-     */
-    protected function mergeParams()
-    {
-        $this->_params = $this->getOverwrite() ?
-            ArrayHelper::merge($this->_params, $this->getDbParams()) :
-            ArrayHelper::merge($this->getDbParams(), $this->_params);
-
-        ksort($this->_params);
+        $file = \Yii::getAlias($this->getFilePath());
+        if (!is_file($file)) {
+            throw new InvalidConfigException("Params file {$file} not found");
+        }
+        return require($file);
     }
 
     /**

@@ -4,6 +4,8 @@ namespace zarv1k\params\components;
 
 use yii\base\Component;
 use yii\base\InvalidConfigException;
+use yii\caching\Cache;
+use yii\caching\DbDependency;
 use yii\db\Connection;
 use yii\db\Query;
 use yii\di\Instance;
@@ -12,37 +14,14 @@ use yii\helpers\ArrayHelper;
 class Params extends Component implements \ArrayAccess, \Iterator, \Countable
 {
     protected $_db = 'db';
+    protected $_cache = 'cache';
     protected $_params = null;
     protected $_overwrite = true;
     protected $_filePath = '@app/config/params.php';
     protected $_tableName = '{{%params}}';
+    protected $_cacheDuration = 86400; // one day
 
-    /**
-     * TODO: review this method access
-     * @return array
-     */
-    protected function getDbParams()
-    {
-        $params = [];
-        // TODO: cache this method
-        $table = $this->getTableName();
-
-        $query = (new Query())
-            ->select('scope, code, value')
-            ->from($table)
-            ->indexBy(function ($row) {
-                $key = $row['code'];
-                if (!is_null($row['scope'])) {
-                    $key = "{$row['scope']}.$key";
-                }
-                return $key;
-            });
-
-        foreach ($query->each() as $k => $v) {
-            $params[$k] = $v['value'];
-        }
-        return $params;
-    }
+    private $_dbCacheDependency;
 
     /**
      * Init component
@@ -52,7 +31,38 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     {
         parent::init();
 
-        $this->_db = Instance::ensure($this->_db, Connection::className());
+        $this->_db = Instance::ensure($this->_dbCacheDependency = $this->_db, Connection::className());
+        $this->_cache = Instance::ensure($this->_cache, Cache::className());
+    }
+
+    /**
+     * Get params from DB
+     * @return array
+     */
+    protected function getDbParams()
+    {
+        if ($this->getCache()->exists($this->getCacheKey())) {
+            return $this->getCache()->get($this->getCacheKey());
+        }
+
+        $params = [];
+        $query = $this->getQuery();
+
+        foreach ($query->each() as $k => $v) {
+            $params[$k] = $v['value'];
+        }
+        $this->getCache()->set($this->getCacheKey(), $params, $this->getCacheDuration(), $this->getDbDependency());
+        return $params;
+    }
+
+    /**
+     * Load params
+     * @throws InvalidConfigException
+     */
+    protected function loadParams()
+    {
+        $this->loadParamsFromFile($this->getFilePath());
+        $this->mergeParams();
     }
 
     /**
@@ -84,24 +94,46 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Load params
-     * @throws InvalidConfigException
+     * Returns cache key
+     * @return string
      */
-    protected function loadParams()
+    protected function getCacheKey()
     {
-        $this->loadParamsFromFile($this->getFilePath());
-        $this->mergeParams();
+        return __CLASS__;
     }
 
     /**
-     * @inheritdoc
+     * @return Query
      */
-    public function offsetExists($offset)
+    protected function getQuery()
     {
-        if (is_null($this->_params)) {
-            $this->loadParams();
-        }
-        return array_key_exists($offset, $this->_params);
+        return (new Query())
+            ->select('scope, code, value')
+            ->from($this->getTableName())
+            ->indexBy(function ($row) {
+                $key = $row['code'];
+                if (!is_null($row['scope'])) {
+                    $key = "{$row['scope']}.$key";
+                }
+                return $key;
+            });
+    }
+
+    /**
+     * @return DbDependency
+     */
+    protected function getDbDependency()
+    {
+        // TODO: review sql query because COALESCE function exists in MySQL only
+        $sql = "
+            SELECT MAX(COALESCE(updated,created))
+            FROM {$this->getTableName()}
+        ";
+        $dependency = new DbDependency([
+            'db' => $this->_dbCacheDependency,
+            'sql' => $sql,
+        ]);
+        return $dependency;
     }
 
     /**
@@ -117,6 +149,17 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
         } else {
             return null;
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function offsetExists($offset)
+    {
+        if (is_null($this->_params)) {
+            $this->loadParams();
+        }
+        return array_key_exists($offset, $this->_params);
     }
 
     /**
@@ -166,20 +209,20 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     /**
      * @inheritdoc
      */
+    public function valid()
+    {
+        return !is_null($this->key());
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function key()
     {
         if (is_null($this->_params)) {
             $this->loadParams();
         }
         return key($this->_params);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function valid()
-    {
-        return !is_null($this->key());
     }
 
     /**
@@ -202,32 +245,6 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
             $this->loadParams();
         }
         return count($this->_params);
-    }
-
-    /**
-     * @param array $params
-     */
-    public function setParams($params)
-    {
-        $this->_params = $params;
-    }
-
-    /**
-     * Is DB parameter override
-     *
-     * @return boolean
-     */
-    public function getOverwrite()
-    {
-        return $this->_overwrite;
-    }
-
-    /**
-     * @param boolean $overwrite
-     */
-    public function setOverwrite($overwrite)
-    {
-        $this->_overwrite = $overwrite;
     }
 
     /**
@@ -263,6 +280,40 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Is DB parameter override
+     *
+     * @return boolean
+     */
+    public function getOverwrite()
+    {
+        return $this->_overwrite;
+    }
+
+    /**
+     * @param boolean $overwrite
+     */
+    public function setOverwrite($overwrite)
+    {
+        $this->_overwrite = $overwrite;
+    }
+
+    /**
+     * @return string|Cache
+     */
+    public function getCache()
+    {
+        return $this->_cache;
+    }
+
+    /**
+     * @param string|Cache $cache
+     */
+    public function setCache($cache)
+    {
+        $this->_cache = $cache;
+    }
+
+    /**
      * @return string
      */
     public function getTableName()
@@ -276,5 +327,21 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     public function setTableName($tableName)
     {
         $this->_tableName = $tableName;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCacheDuration()
+    {
+        return $this->_cacheDuration;
+    }
+
+    /**
+     * @param int $cacheDuration
+     */
+    public function setCacheDuration($cacheDuration)
+    {
+        $this->_cacheDuration = $cacheDuration;
     }
 }

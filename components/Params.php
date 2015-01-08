@@ -67,7 +67,7 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
             ArrayHelper::merge($this->getFileParams(), $this->getDbParams()) :
             ArrayHelper::merge($this->getDbParams(), $this->getFileParams());
 
-        ksort($this->_params); // TODO: review this code - may be this sort is unneeded and should be removed
+        ksort($this->_params);
     }
 
     /**

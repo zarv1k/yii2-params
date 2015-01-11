@@ -20,19 +20,6 @@ class Params extends Widget
 
     public function run()
     {
-        if (\Yii::$app->session->getFlash('yii2-params-updated')) {
-            // TODO: review this custom alert code
-            $closeButton = Html::button('&times;', [
-                'data-dismiss' => 'alert',
-                'aria-hidden' => 'true',
-                'class' => 'close',
-            ]);
-
-            echo Html::tag('div', $closeButton."Params updated successfully!", [
-                'class' => 'alert-info alert fade in'
-            ]);
-        }
-
         /** @var \zarv1k\params\models\DynamicParam[] $models */
         $models = \zarv1k\params\models\Params::getDynamicModels();
         $form = ActiveForm::begin([

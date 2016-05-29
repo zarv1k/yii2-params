@@ -10,8 +10,7 @@ class ManageController extends Controller
     public function actionIndex()
     {
         // prepare file params data provider
-        $filePath = \Yii::getAlias(\Yii::$app->params->getFilePath());
-        $fileParams = is_file($filePath) ? require($filePath) : [];
+        $fileParams = \Yii::$app->params->getFileParams();
 
         $fileParamKeys   = array_keys($fileParams);
         $fileParamsArray = array_map(

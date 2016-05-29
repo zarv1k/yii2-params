@@ -75,17 +75,27 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      * @return array
      * @throws InvalidConfigException
      */
-    protected function getFileParams()
+    public function getFileParams()
     {
         if (is_null($this->getFilePath())) {
             return [];
         }
 
-        $file = \Yii::getAlias($this->getFilePath());
-        if (!is_file($file)) {
-            throw new InvalidConfigException("Params file {$file} not found");
+        $fileParams = [];
+        $filePaths = $this->getFilePath();
+        if (!is_array($filePaths)) {
+            $filePaths = [$filePaths];
         }
-        return require($file);
+
+        foreach ($filePaths as $filePath) {
+            $file = \Yii::getAlias($filePath);
+            if (!is_file($file)) {
+                throw new InvalidConfigException("Params file {$file} not found");
+            }
+            ArrayHelper::merge($fileParams, require($file));
+        }
+
+        return $fileParams;
     }
 
     /**
@@ -259,7 +269,7 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * @return array
+     * @return string|array
      */
     public function getFilePath()
     {
@@ -267,7 +277,7 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * @param string $filePath
+     * @param string|attay $filePath
      */
     public function setFilePath($filePath)
     {

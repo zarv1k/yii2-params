@@ -1,6 +1,6 @@
 <?php
 
-namespace zarv1k\params\modules\widget\widgets;
+namespace zarv1k\params\modules\params\widgets;
 
 use yii\base\Widget;
 use yii\helpers\ArrayHelper;
@@ -12,7 +12,7 @@ use yii\widgets\Pjax;
 class Params extends Widget
 {
     // TODO: add getter/setter for moduleId + set it in config + move the all options in configuration
-    protected $_moduleId = 'params-widget';
+    protected $_moduleId = 'params';
 
     protected $_submitContent = 'Update';
     protected $_submitOptions = [
@@ -23,7 +23,8 @@ class Params extends Widget
     public function run()
     {
         Pjax::begin([
-            'enablePushState' => false
+            'enablePushState' => false,
+            'formSelector' => $this->getFormId()
         ]);
         if (\Yii::$app->session->getFlash('yii2-params-updated')) {
             // TODO: review this custom alert code
@@ -43,10 +44,7 @@ class Params extends Widget
 
         $form = ActiveForm::begin([
             'id' => $this->getFormId(),
-            'action' => \Yii::$app->getUrlManager()->createUrl("$this->_moduleId/update"),
-            'options' => [
-                'data-pjax' => 1
-            ]
+            'action' => \Yii::$app->getUrlManager()->createUrl("$this->_moduleId/manage"),
         ]);
         /** @var ActiveField $activeField */
         $activeField = \Yii::$container->get('yii\widgets\ActiveField'); // TODO: review get from di
@@ -54,11 +52,12 @@ class Params extends Widget
         foreach ($models as $model) {
             echo $form->field($model, "[{$model->owner->id}]{$model->owner->code}", [
                 'labelOptions' => ArrayHelper::merge($activeField->labelOptions,[
-                    'label' => $model->owner->name,
+                    'label' => $model->owner->description,
+                    'title' => $model->owner->name,
                 ]),
                 'inputOptions' => ArrayHelper::merge($activeField->inputOptions,[
                     'placeholder' => $model->owner->description,
-                    'title' => $model->owner->description,
+                    'title' => $model->owner->name,
                 ]),
             ]);
         }

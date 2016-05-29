@@ -70,4 +70,48 @@ class Params extends ActiveRecord
             'updated' => 'Updated',
         ];
     }
+
+    /**
+     * Return dynamic models
+     * @return DynamicParam[]
+     */
+    public static function getDynamicModels()
+    {
+        /** @var static[] $params */
+        $params = static::find()->all(); // TODO: review criteria
+        $models = [];
+
+        foreach ($params as $param) {
+            $models[$param->id] = $param->getDynamicModel();
+        }
+
+        return $models;
+    }
+
+
+    /**
+     * Returns fullname string of param with scope
+     */
+    public function getName()
+    {
+        return !empty($this->scope) ? "{$this->scope}.{$this->code}" : $this->code;
+    }
+
+    /**
+     * @return DynamicParam
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function getDynamicModel()
+    {
+        /** @var DynamicParam $model */
+        $model = \Yii::$container->get('\zarv1k\params\models\DynamicParam', [], ['owner' => $this]);
+        $model->defineAttribute($this->code, $this->value);
+
+        foreach (json_decode($this->validation, true) as $rule) {
+            $model->addRule($this->code, array_shift($rule), $rule);
+        }
+
+        return $model;
+    }
+
 }

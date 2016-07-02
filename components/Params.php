@@ -92,7 +92,7 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
             if (!is_file($file)) {
                 throw new InvalidConfigException("Params file {$file} not found");
             }
-            ArrayHelper::merge($fileParams, require($file));
+            $fileParams = ArrayHelper::merge($fileParams, require($file));
         }
 
         return $fileParams;

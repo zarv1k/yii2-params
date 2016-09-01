@@ -13,6 +13,7 @@ use yii\helpers\ArrayHelper;
 
 class Params extends Component implements \ArrayAccess, \Iterator, \Countable
 {
+    protected $_dbEnabled = true;
     protected $_db = 'db';
     protected $_cache = 'cache';
     protected $_params = null;
@@ -41,13 +42,18 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
      */
     protected function getDbParams()
     {
+        $params = [];
+
+        if (!$this->_dbEnabled) {
+            return $params;
+        }
+
         if ($this->getCache()->exists($this->getCacheKey())) {
             if (is_array($dbParams = $this->getCache()->get($this->getCacheKey()))) {
                 return $dbParams;
             }
         }
 
-        $params = [];
         $query = $this->getQuery();
 
         foreach ($query->each() as $k => $v) {
@@ -348,5 +354,21 @@ class Params extends Component implements \ArrayAccess, \Iterator, \Countable
     public function setCacheDuration($cacheDuration)
     {
         $this->_cacheDuration = $cacheDuration;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function getDbEnabled()
+    {
+        return $this->_dbEnabled;
+    }
+
+    /**
+     * @param boolean $dbEnabled
+     */
+    public function setDbEnabled($dbEnabled)
+    {
+        $this->_dbEnabled = $dbEnabled;
     }
 }
